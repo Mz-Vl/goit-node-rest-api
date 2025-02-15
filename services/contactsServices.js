@@ -1,7 +1,10 @@
-import { nanoid } from "nanoid";
+// import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
+
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 21);
 const contactsPath = resolve("db", "contacts.json");
 
 export async function listContacts() {
