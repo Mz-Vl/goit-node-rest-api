@@ -11,3 +11,8 @@ export const updateContactSchema = Joi.object({
     email: Joi.string().email(),
     phone: Joi.string().pattern(/^[0-9]{10}$/),
 }).min(1);
+
+export const updateFavoriteSchema = Joi.object({
+    favorite: Joi.boolean().required(),
+});
+
