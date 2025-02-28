@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../config/database.js";
+import { User } from "./userModel.js";
 
 export const Contact = sequelize.define(
     "Contact",
@@ -26,9 +27,16 @@ export const Contact = sequelize.define(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
+        owner: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
     },
     {
         tableName: "contacts",
         timestamps: true,
     }
 );
+
+User.hasMany(Contact, { foreignKey: "owner" });
+Contact.belongsTo(User, { foreignKey: "owner" });
