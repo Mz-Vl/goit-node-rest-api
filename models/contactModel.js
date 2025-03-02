@@ -28,7 +28,7 @@ export const Contact = sequelize.define(
             defaultValue: false,
         },
         owner: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false,
         },
     },

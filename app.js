@@ -4,7 +4,6 @@ import cors from "cors";
 import { connectDB, sequelize } from "./config/database.js";
 import authRouter from "./routes/authRouter.js";
 import contactsRouter from "./routes/contactsRouter.js";
-import { Contact } from "./models/contactModel.js";
 
 const app = express();
 
@@ -12,10 +11,7 @@ app.use(morgan("tiny"));
 app.use(cors());
 app.use(express.json());
 
-app.use("/auth", authRouter);
-app.use("/login", authRouter);
-app.use("/logout", authRouter);
-app.use("/current", authRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/contacts", contactsRouter);
 
 app.use((_, res) => {
@@ -27,11 +23,12 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
-connectDB();
-sequelize.sync().then(() => {
-  console.log("✅  Database synchronized");
-});
+connectDB().then(() => {
+  sequelize.sync().then(() => {
+    console.log("✅  Database synchronized");
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+    app.listen(3000, () => {
+      console.log("Server is running on port 3000");
+    });
+  });
 });
