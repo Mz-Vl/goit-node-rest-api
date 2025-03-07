@@ -7,15 +7,21 @@ import {
     updateStatusContact,
 } from "../services/contactsServices.js";
 import HttpError from "../helpers/HttpError.js";
+import { Contact } from "../models/contactModel.js";
+
 
 export const getAllContacts = async (req, res, next) => {
     try {
-        const contacts = await listContacts();
+        const contacts = await Contact.findAll({
+            where: { owner: req.user.id }
+        });
+
         res.status(200).json(contacts);
     } catch (error) {
         next(error);
     }
 };
+
 
 export const getOneContact = async (req, res, next) => {
     try {
@@ -41,12 +47,17 @@ export const deleteContact = async (req, res, next) => {
 
 export const createContact = async (req, res, next) => {
     try {
-        const contact = await addContact(req.body);
+        const { name, email, phone } = req.body;
+        const owner = req.user.id;
+
+        const contact = await Contact.create({ name, email, phone, owner });
+
         res.status(201).json(contact);
     } catch (error) {
         next(error);
     }
 };
+
 
 export const updateContact = async (req, res, next) => {
     try {
