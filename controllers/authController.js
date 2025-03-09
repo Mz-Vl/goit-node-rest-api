@@ -113,7 +113,13 @@ export const updateAvatar = async (req, res, next) => {
         const { path: tempPath, filename } = req.file;
         const finalPath = path.join(avatarsDir, filename);
 
-        await fs.rename(tempPath, finalPath);
+        try {
+            await fs.rename(tempPath, finalPath);
+        } catch (moveError) {
+            console.error("❌ Error moving file:", moveError);
+            await fs.unlink(tempPath);
+            throw HttpError(500, "Error saving avatar");
+        }
 
         const avatarURL = `/avatars/${filename}`;
         req.user.avatarURL = avatarURL;
