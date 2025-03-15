@@ -1,6 +1,10 @@
+import path from "path";
+import fs from "fs/promises";
+import multer from "multer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import gravatar from "gravatar";
 import { User } from "../models/userModel.js";
 import HttpError from "../helpers/HttpError.js";
 
@@ -17,13 +21,15 @@ export const register = async (req, res, next) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        const avatarURL = gravatar.url(email, { s: "250", d: "retro" });
 
-        const newUser = await User.create({ email, password: hashedPassword });
+        const newUser = await User.create({ email, password: hashedPassword, avatarURL });
 
         res.status(201).json({
             user: {
                 email: newUser.email,
                 subscription: newUser.subscription,
+                avatarURL: newUser.avatarURL,
             },
         });
     } catch (error) {
@@ -80,6 +86,46 @@ export const getCurrentUser = async (req, res, next) => {
             email: req.user.email,
             subscription: req.user.subscription,
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+const tempDir = path.resolve("temp");
+const avatarsDir = path.resolve("public/avatars");
+
+const storage = multer.diskStorage({
+    destination: tempDir,
+    filename: (req, file, cb) => {
+        cb(null, `${req.user.id}-${file.originalname}`);
+    },
+});
+
+export const upload = multer({ storage });
+
+export const updateAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            throw HttpError(400, "File not provided");
+        }
+
+        const { path: tempPath, filename } = req.file;
+        const finalPath = path.join(avatarsDir, filename);
+
+        try {
+            await fs.rename(tempPath, finalPath);
+        } catch (moveError) {
+            console.error("❌ Error moving file:", moveError);
+            await fs.unlink(tempPath);
+            throw HttpError(500, "Error saving avatar");
+        }
+
+        const avatarURL = `/avatars/${filename}`;
+        req.user.avatarURL = avatarURL;
+        await req.user.save();
+
+        res.status(200).json({ avatarURL });
     } catch (error) {
         next(error);
     }
