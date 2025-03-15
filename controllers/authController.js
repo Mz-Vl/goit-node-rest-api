@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 import gravatar from "gravatar";
 import { User } from "../models/userModel.js";
 import HttpError from "../helpers/HttpError.js";
+import { v4 as uuidv4 } from "uuid";
+import { sendVerificationEmail } from "../helpers/emailService.js";
 
 dotenv.config();
 
@@ -22,8 +24,16 @@ export const register = async (req, res, next) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const avatarURL = gravatar.url(email, { s: "250", d: "retro" });
+        const verificationToken = uuidv4();
 
-        const newUser = await User.create({ email, password: hashedPassword, avatarURL });
+        const newUser = await User.create({
+            email,
+            password: hashedPassword,
+            avatarURL,
+            verificationToken,
+        });
+
+        await sendVerificationEmail(email, verificationToken);
 
         res.status(201).json({
             user: {
@@ -37,6 +47,54 @@ export const register = async (req, res, next) => {
     }
 };
 
+
+export const verifyEmail = async (req, res, next) => {
+    try {
+        const { verificationToken } = req.params;
+        const user = await User.findOne({ where: { verificationToken } });
+
+        if (!user) {
+            throw HttpError(404, "User not found");
+        }
+
+        user.verificationToken = null;
+        user.verify = true;
+        await user.save();
+
+        res.status(200).json({ message: "Verification successful" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+export const resendVerificationEmail = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            throw HttpError(400, "Missing required field email");
+        }
+
+        const user = await User.findOne({ where: { email } });
+
+        if (!user) {
+            throw HttpError(404, "User not found");
+        }
+
+        if (user.verify) {
+            throw HttpError(400, "Verification has already been passed");
+        }
+
+        await sendVerificationEmail(email, user.verificationToken);
+
+        res.status(200).json({ message: "Verification email sent" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -44,6 +102,10 @@ export const login = async (req, res, next) => {
         const user = await User.findOne({ where: { email } });
         if (!user) {
             throw HttpError(401, "Email or password is wrong");
+        }
+
+        if (!user.verify) {
+            throw HttpError(401, "Email not verified");
         }
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
