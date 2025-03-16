@@ -31,6 +31,14 @@ export const User = sequelize.define(
             type: DataTypes.STRING,
             allowNull: true,
         },
+        verify: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
+        verificationToken: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
     },
     {
         tableName: "users",
